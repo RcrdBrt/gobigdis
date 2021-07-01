@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/RcrdBrt/GoBigdis/storage"
+	"github.com/RcrdBrt/gobigdis/storage"
 )
 
 type HandlerFn func(r *Request) error

@@ -1,3 +1,3 @@
-module github.com/RcrdBrt/GoBigdis
+module github.com/RcrdBrt/gobigdis
 
 go 1.16

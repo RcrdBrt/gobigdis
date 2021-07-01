@@ -201,7 +201,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/RcrdBrt/GoBigdis/internal"
+	"github.com/RcrdBrt/gobigdis/internal"
 )
 
 func parseRequest(r *bufio.Reader) (*internal.Request, error) {

@@ -21,9 +21,9 @@ import (
 	"flag"
 	"log"
 
-	"github.com/RcrdBrt/GoBigdis/config"
-	"github.com/RcrdBrt/GoBigdis/network"
-	"github.com/RcrdBrt/GoBigdis/storage"
+	"github.com/RcrdBrt/gobigdis/config"
+	"github.com/RcrdBrt/gobigdis/network"
+	"github.com/RcrdBrt/gobigdis/storage"
 )
 
 var (

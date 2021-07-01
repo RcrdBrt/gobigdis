@@ -23,7 +23,7 @@ import (
 	"log"
 	"net"
 
-	"github.com/RcrdBrt/GoBigdis/internal"
+	"github.com/RcrdBrt/gobigdis/internal"
 )
 
 type server struct {

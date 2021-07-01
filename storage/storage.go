@@ -26,8 +26,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RcrdBrt/GoBigdis/alg"
-	"github.com/RcrdBrt/GoBigdis/config"
+	"github.com/RcrdBrt/gobigdis/alg"
+	"github.com/RcrdBrt/gobigdis/config"
 )
 
 var DBDirPath string

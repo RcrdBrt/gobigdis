@@ -23,7 +23,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/RcrdBrt/GoBigdis/alg"
+	"github.com/RcrdBrt/gobigdis/alg"
 )
 
 type ExpiringKey struct {
