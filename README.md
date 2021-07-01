@@ -25,10 +25,19 @@ This is the subset of commands it currently implements:
 Nothing other than the basic KV type has been implemented as of now.
 
 ## Command parameters
-GoBigdis currently accepts the following command flags
+GoBigdis, with its `gobigdis` command, currently accepts the following command flags:
 - `-h STRING` specifies on what IP the server TCP socket should listen on (defaults to `localhost` if not set)
 - `-p INTEGER` tells on what port (defaults to `6389` if not set)
 - `-d PATH` sets the root database directory to use, it proceeds to create it if it doesn't already exist (defaults to `$HOME/.gobigdis` if not set)
+
+## Installation
+You need `go` installed on your system. If you do, simply run:
+```
+go install github.com/RcrdBrt/gobigdis@latest
+```
+
+Make sure you have put the go binaries folder in your PATH and you're good to *go* with the command `gobigdis`.
+Launch `gobigdis -h` for a basic command overview.
 
 ## Benchmarks
 I used the benchmark suite `redis-benchmark`. It ships with the default `redis 6.2.4` [package](https://archlinux.org/packages/community/x86_64/redis/) of my Linux distribution. The Redis stock server is used with default configuration provided by said package.
