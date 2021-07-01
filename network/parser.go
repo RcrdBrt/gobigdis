@@ -197,10 +197,11 @@ package network
 import (
 	"bufio"
 	"fmt"
-	"gobigdis/internal"
 	"io"
 	"io/ioutil"
 	"strings"
+
+	"github.com/RcrdBrt/GoBigdis/internal"
 )
 
 func parseRequest(r *bufio.Reader) (*internal.Request, error) {

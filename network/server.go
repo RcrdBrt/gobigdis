@@ -20,9 +20,10 @@ package network
 import (
 	"bufio"
 	"fmt"
-	"gobigdis/internal"
 	"log"
 	"net"
+
+	"github.com/RcrdBrt/GoBigdis/internal"
 )
 
 type server struct {

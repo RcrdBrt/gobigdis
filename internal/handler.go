@@ -19,8 +19,9 @@ package internal
 
 import (
 	"fmt"
-	"gobigdis/storage"
 	"strconv"
+
+	"github.com/RcrdBrt/GoBigdis/storage"
 )
 
 type HandlerFn func(r *Request) error

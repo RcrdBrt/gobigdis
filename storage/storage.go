@@ -19,14 +19,15 @@
 package storage
 
 import (
-	"gobigdis/alg"
-	"gobigdis/config"
 	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/RcrdBrt/GoBigdis/alg"
+	"github.com/RcrdBrt/GoBigdis/config"
 )
 
 var DBDirPath string

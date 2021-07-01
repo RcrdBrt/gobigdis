@@ -19,10 +19,11 @@ package main
 
 import (
 	"flag"
-	"gobigdis/config"
-	"gobigdis/network"
-	"gobigdis/storage"
 	"log"
+
+	"github.com/RcrdBrt/GoBigdis/config"
+	"github.com/RcrdBrt/GoBigdis/network"
+	"github.com/RcrdBrt/GoBigdis/storage"
 )
 
 var (
