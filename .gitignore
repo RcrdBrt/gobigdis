@@ -1,4 +1,4 @@
 .vscode/
 .gobigdis/
 PKGBUILD
-pre-push.sh
+pre-push
