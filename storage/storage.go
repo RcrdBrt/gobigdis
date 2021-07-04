@@ -32,24 +32,22 @@ import (
 var cache *alg.Cache
 
 func Init() {
-	versionFile := filepath.Join(config.Config.DBConfig.InternalDirPath, "VERSION")
+	versionFilePath := filepath.Join(config.Config.DBConfig.InternalDirPath, "VERSION")
 
-	if _, err := os.Stat(versionFile); err != nil {
-		if os.IsNotExist(err) {
-			if err := os.WriteFile(versionFile, []byte(config.Config.DBConfig.Version), 0600); err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			log.Fatal(err)
-		}
-	} else {
-		// VERSION file exists
-		versionFileContent, err := os.ReadFile(versionFile)
-		if err != nil {
-			log.Fatal(err)
-		}
+	versionFile, err := os.OpenFile(versionFilePath, os.O_CREATE|os.O_RDWR|os.O_SYNC, 0600)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer versionFile.Close()
 
-		versionNumberFound, err := strconv.Atoi(string(versionFileContent))
+	prevVersionFileContent, err := os.ReadFile(versionFilePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if len(prevVersionFileContent) > 0 {
+		// file already existed
+		versionNumberFound, err := strconv.Atoi(string(prevVersionFileContent))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -64,6 +62,14 @@ func Init() {
 				log.Fatal(err)
 			}
 		}
+	}
+
+	if _, err := versionFile.Write([]byte(config.Config.DBConfig.Version)); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := versionFile.Sync(); err != nil {
+		log.Fatal(err)
 	}
 
 	cache = &alg.Cache{
