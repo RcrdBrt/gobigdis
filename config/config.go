@@ -21,6 +21,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,6 +34,8 @@ import (
 	It is not supposed to be ever changed as it's a hard-coded feature.
 */
 const CacheDepth = 3
+
+const VERSION = "1"
 
 //go:embed default.json
 var defaultConfig []byte
@@ -72,7 +75,8 @@ func Init(configFile, dbRoot, host string, port int) {
 
 	if dbRoot != "" {
 		Config.DBConfig.DBDirPath = dbRoot
-		Config.DBConfig.DBDirName = strings.Split(Config.DBConfig.DBDirPath, string(filepath.Separator))[len(Config.DBConfig.DBDirPath)-1]
+		splittedDBDirPath := strings.Split(Config.DBConfig.DBDirPath, string(filepath.Separator))
+		Config.DBConfig.DBDirName = splittedDBDirPath[len(splittedDBDirPath)-1]
 	}
 
 	if host != "" {
@@ -99,27 +103,47 @@ func parse(configFileContent []byte) config {
 		log.Fatal(err)
 	}
 
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
 	if c.DBConfig == nil {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			log.Fatal(err)
-		}
+		// section "db" does not exist in the config file
 		c.DBConfig = &dbConfig{
 			DBDirPath: filepath.Join(home, ".gobigdis"),
 			DBMaxNum:  16,
 			DBDirName: ".gobigdis",
-			Version:   "1",
 		}
 	} else {
-		c.DBConfig.DBDirName = strings.Split(c.DBConfig.DBDirPath, string(filepath.Separator))[len(c.DBConfig.DBDirPath)-1]
+		// section "db" exists but has some invalid fields
+		if c.DBConfig.DBDirPath == "" {
+			c.DBConfig.DBDirPath = filepath.Join(home, ".gobigdis")
+			splittedDBDirPath := strings.Split(c.DBConfig.DBDirPath, string(filepath.Separator))
+			c.DBConfig.DBDirName = splittedDBDirPath[len(splittedDBDirPath)-1]
+		}
+
+		if c.DBConfig.DBMaxNum < 1 {
+			c.DBConfig.DBMaxNum = math.MaxInt16 // sane default
+		}
 	}
 
 	c.DBConfig.InternalDirPath = filepath.Join(c.DBConfig.DBDirPath, "_internal")
+	c.DBConfig.Version = VERSION
 
 	if c.ServerConfig == nil {
+		// section "server" does not exist in the config file
 		c.ServerConfig = &serverConfig{
 			Host: "localhost",
 			Port: 6389,
+		}
+	} else {
+		// section "server" exists but has some invalid fields
+		if c.ServerConfig.Host == "" {
+			c.ServerConfig.Host = "127.0.0.1"
+		}
+
+		if c.ServerConfig.Port < 1 {
+			c.ServerConfig.Port = 6389
 		}
 	}
 
