@@ -23,6 +23,8 @@ import (
 	"log"
 	"net"
 
+	"github.com/RcrdBrt/gobigdis/config"
+
 	"github.com/RcrdBrt/gobigdis/internal"
 )
 
@@ -34,18 +36,10 @@ type server struct {
 	listener     *net.TCPListener
 }
 
-func StartServer(host string, port int) error {
-	if host == "" {
-		host = "localhost"
-	}
-
-	if port == 0 {
-		port = 6389
-	}
-
+func StartServer() error {
 	srv := &server{
-		host:         host,
-		port:         port,
+		host:         config.Config.ServerConfig.Host,
+		port:         config.Config.ServerConfig.Port,
 		monitorChans: []chan string{},
 	}
 

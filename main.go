@@ -27,17 +27,18 @@ import (
 )
 
 var (
-	host   = flag.String("h", "localhost", "IP address to listen on")
-	port   = flag.Int("p", 6389, "Port of the socket")
-	dbroot = flag.String("d", "", "Database root folder")
+	host       = flag.String("h", "localhost", "IP address to listen on")
+	port       = flag.Int("p", 6389, "Port of the socket")
+	dbRoot     = flag.String("d", "", "Database root folder")
+	configFile = flag.String("c", "", "Path to the config file")
 )
 
 func main() {
 	flag.Parse()
 
-	config.Init()
+	config.Init(*configFile, *dbRoot, *host, *port)
 
-	storage.Init(*dbroot)
+	storage.Init()
 
-	log.Fatal(network.StartServer(*host, *port))
+	log.Fatal(network.StartServer())
 }

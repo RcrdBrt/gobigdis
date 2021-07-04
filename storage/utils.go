@@ -20,6 +20,8 @@ package storage
 import (
 	"path/filepath"
 	"strings"
+
+	"github.com/RcrdBrt/gobigdis/config"
 )
 
 func dbDirLevel(path string) int {
@@ -27,7 +29,7 @@ func dbDirLevel(path string) int {
 
 	dbDirLevel := -1
 	for i := range pathList {
-		if pathList[i] == dbDirName {
+		if pathList[i] == config.Config.DBConfig.DBDirName {
 			dbDirLevel = i
 		}
 	}

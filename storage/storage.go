@@ -23,49 +23,60 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/RcrdBrt/gobigdis/alg"
 	"github.com/RcrdBrt/gobigdis/config"
 )
 
-var DBDirPath string
-
-var dbDirName string
-
 var cache *alg.Cache
 
-func Init(dbroot string) {
-	DBDirPath = dbroot
-	if DBDirPath == "" {
-		// no dbroot passed
-		home, err := os.UserHomeDir()
+func Init() {
+	versionFile := filepath.Join(config.Config.DBConfig.InternalDirPath, "VERSION")
+
+	if _, err := os.Stat(versionFile); err != nil {
+		if os.IsNotExist(err) {
+			if err := os.WriteFile(versionFile, []byte(config.Config.DBConfig.Version), 0600); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			log.Fatal(err)
+		}
+	} else {
+		// VERSION file exists
+		versionFileContent, err := os.ReadFile(versionFile)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		DBDirPath = filepath.Join(home, ".gobigdis")
-		dbDirName = ".gobigdis"
-	} else {
-		dbDirName = strings.Split(DBDirPath, string(filepath.Separator))[len(DBDirPath)-1]
-	}
+		versionNumberFound, err := strconv.Atoi(string(versionFileContent))
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	if err := os.MkdirAll(DBDirPath, 0700); err != nil {
-		log.Fatal(err)
+		versionNumberCurrent, err := strconv.Atoi(config.Config.DBConfig.Version)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if versionNumberCurrent > versionNumberFound {
+			if err := migrate(versionNumberFound, versionNumberCurrent); err != nil {
+				log.Fatal(err)
+			}
+		}
 	}
 
 	cache = &alg.Cache{
-		MaxDBNum: config.Config.DBMaxNum,
-		Root:     DBDirPath,
+		MaxDBNum: config.Config.DBConfig.DBMaxNum,
+		Root:     config.Config.DBConfig.DBDirName,
 	}
 	cache.BuildCacheData()
 
-	go cache.Vacuum(config.Config.DBMaxNum, 10*time.Minute)
+	go cache.Vacuum(config.Config.DBConfig.DBMaxNum, 10*time.Minute)
 }
 
 func NewDB(dbNum int) error {
-	dbPath := filepath.Join(DBDirPath, strconv.FormatInt(int64(dbNum), 10))
+	dbPath := filepath.Join(config.Config.DBConfig.DBDirPath, strconv.FormatInt(int64(dbNum), 10))
 
 	cache.FSRWL.Lock()
 	defer cache.FSRWL.Unlock()
@@ -81,7 +92,7 @@ func FlushDB(dbNum int) error {
 	cache.FSRWL.Lock()
 	defer cache.FSRWL.Unlock()
 
-	if err := os.RemoveAll(filepath.Join(DBDirPath, strconv.FormatInt(int64(dbNum), 10))); err != nil {
+	if err := os.RemoveAll(filepath.Join(config.Config.DBConfig.DBDirPath, strconv.FormatInt(int64(dbNum), 10))); err != nil {
 		return err
 	}
 
