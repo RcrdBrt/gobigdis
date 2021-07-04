@@ -74,7 +74,7 @@ func Init() {
 
 	cache = &alg.Cache{
 		MaxDBNum: config.Config.DBConfig.DBMaxNum,
-		Root:     config.Config.DBConfig.DBDirName,
+		Root:     config.Config.DBConfig.DBDirPath,
 	}
 	cache.BuildCacheData()
 
