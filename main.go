@@ -19,6 +19,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 
 	"github.com/RcrdBrt/gobigdis/config"
@@ -27,13 +28,19 @@ import (
 )
 
 var (
-	host       = flag.String("h", "localhost", "IP address to listen on")
-	port       = flag.Int("p", 6389, "Port of the socket")
-	dbRoot     = flag.String("d", "", "Database root folder")
-	configFile = flag.String("c", "", "Path to the config file")
+	host       = flag.String("h", "localhost", "`IP` address to listen on")
+	port       = flag.Int("p", 6389, "`port` of the socket")
+	dbRoot     = flag.String("d", "", "database root `folder` (default \"$HOME/.gobigdis\")")
+	configFile = flag.String("c", "", "`path` to the config file (optional)")
 )
 
 func main() {
+	flagDefaultUsage := flag.Usage
+	flag.Usage = func() {
+		fmt.Print("GoBigdis is a persistent database that implements the Redis server protocol.\n\n")
+		flagDefaultUsage()
+	}
+
 	flag.Parse()
 
 	config.Init(*configFile, *dbRoot, *host, *port)
