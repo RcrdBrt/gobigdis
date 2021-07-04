@@ -197,6 +197,7 @@ package internal
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"strconv"
@@ -223,6 +224,16 @@ type IntegerReply struct {
 
 func (r *IntegerReply) WriteTo(w io.Writer) (int64, error) {
 	n, err := w.Write([]byte(":" + strconv.Itoa(r.number) + "\r\n"))
+	return int64(n), err
+}
+
+type ErrorReply struct {
+	msg string
+}
+
+func (r *ErrorReply) WriteTo(w io.Writer) (int64, error) {
+	n, err := fmt.Fprintf(w, "-%s", r.msg)
+
 	return int64(n), err
 }
 
