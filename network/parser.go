@@ -211,7 +211,7 @@ func parseRequest(r *bufio.Reader) (*internal.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	// note that this line also protects us from negative integers
+	// note that this line also protects it from negative integers
 	var argsCount int
 
 	// Multiline request:

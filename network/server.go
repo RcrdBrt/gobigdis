@@ -36,32 +36,32 @@ type server struct {
 	listener     *net.TCPListener
 }
 
-func StartServer() error {
+func StartServer() {
 	srv := &server{
 		host:         config.Config.ServerConfig.Host,
 		port:         config.Config.ServerConfig.Port,
 		monitorChans: []chan string{},
 	}
 
-	srv.methods = internal.NewV1Handler()
+	srv.methods = internal.NewHandlerV1()
 
 	listener, err := net.ListenTCP("tcp", &net.TCPAddr{
 		IP:   net.ParseIP(srv.host),
 		Port: srv.port,
 	})
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 	defer listener.Close()
 
 	srv.listener = listener
 
-	srv.monitorChans = []chan string{}
+	srv.monitorChans = []chan string{} // empty slice is 0-sized
 
 	for {
 		conn, err := srv.listener.AcceptTCP()
 		if err != nil {
-			return err
+			log.Fatal(err)
 		}
 
 		go srv.serveClient(conn)
@@ -96,6 +96,8 @@ func (srv *server) serveClient(conn net.Conn) {
 			fmt.Fprint(conn, "+OK\r\n")
 			return
 		}
+
+		internal.Debugf("db %d: '%s' '%s'\n", request.GetDBNum(), request.Name, request.Args)
 
 		if err := srv.methods[request.Name](request); err != nil {
 			panic(err)

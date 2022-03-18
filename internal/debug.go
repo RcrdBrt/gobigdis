@@ -210,14 +210,13 @@ var Debugf = func(format string, a ...interface{}) {}
 
 func init() {
 	if os.Getenv("DEBUG") != "" {
-		Debugf = ActualDebugf
+		Debugf = actualDebugf
 	}
-
 }
 
-// If Docker is in damon mode, also send the debug info on the socket
+// If Docker is in daemon mode, also send the debug info on the socket
 // Convenience debug function, courtesy of http://github.com/dotcloud/docker
-func ActualDebugf(format string, a ...interface{}) {
+func actualDebugf(format string, a ...interface{}) {
 	// Retrieve the stack infos
 	_, file, line, ok := runtime.Caller(1)
 	if !ok {

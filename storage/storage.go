@@ -19,17 +19,17 @@
 package storage
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
+	"sync"
 
-	"github.com/RcrdBrt/gobigdis/alg"
 	"github.com/RcrdBrt/gobigdis/config"
 )
 
-var cache *alg.Cache
+var fsLock sync.RWMutex
 
 func Init() {
 	versionFilePath := filepath.Join(config.Config.DBConfig.InternalDirPath, "VERSION")
@@ -52,40 +52,25 @@ func Init() {
 			log.Fatal(err)
 		}
 
-		versionNumberCurrent, err := strconv.Atoi(config.Config.DBConfig.Version)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		if versionNumberCurrent > versionNumberFound {
-			if err := migrate(versionNumberFound, versionNumberCurrent); err != nil {
+		// storage migration
+		if config.STORAGE_VERSION > versionNumberFound {
+			if err := migrate(versionNumberFound, config.STORAGE_VERSION); err != nil {
 				log.Fatal(err)
 			}
 		}
 	}
 
-	if _, err := versionFile.Write([]byte(config.Config.DBConfig.Version)); err != nil {
+	if _, err := versionFile.Write([]byte(fmt.Sprint(config.STORAGE_VERSION))); err != nil {
 		log.Fatal(err)
 	}
 
 	if err := versionFile.Sync(); err != nil {
 		log.Fatal(err)
 	}
-
-	cache = &alg.Cache{
-		MaxDBNum: config.Config.DBConfig.DBMaxNum,
-		Root:     config.Config.DBConfig.DBDirPath,
-	}
-	cache.BuildCacheData()
-
-	go cache.Vacuum(config.Config.DBConfig.DBMaxNum, 10*time.Minute)
 }
 
 func NewDB(dbNum int) error {
-	dbPath := filepath.Join(config.Config.DBConfig.DBDirPath, strconv.FormatInt(int64(dbNum), 10))
-
-	cache.FSRWL.Lock()
-	defer cache.FSRWL.Unlock()
+	dbPath := filepath.Join(config.Config.DBConfig.DBDirPath, fmt.Sprint(dbNum))
 
 	if err := os.MkdirAll(dbPath, 0700); err != nil {
 		return err
@@ -95,10 +80,7 @@ func NewDB(dbNum int) error {
 }
 
 func FlushDB(dbNum int) error {
-	cache.FSRWL.Lock()
-	defer cache.FSRWL.Unlock()
-
-	if err := os.RemoveAll(filepath.Join(config.Config.DBConfig.DBDirPath, strconv.FormatInt(int64(dbNum), 10))); err != nil {
+	if err := os.RemoveAll(filepath.Join(config.Config.DBConfig.DBDirPath, fmt.Sprint(dbNum))); err != nil {
 		return err
 	}
 

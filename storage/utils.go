@@ -18,21 +18,17 @@
 package storage
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/RcrdBrt/gobigdis/config"
 )
 
-func dbDirLevel(path string) int {
-	pathList := strings.Split(path, string(filepath.Separator))
+func pathFromKey(dbNum int, key []byte) string {
+	shaKey := sha256.Sum256(key)
+	hashedKey := hex.EncodeToString(shaKey[:])
 
-	dbDirLevel := -1
-	for i := range pathList {
-		if pathList[i] == config.Config.DBConfig.DBDirName {
-			dbDirLevel = i
-		}
-	}
-
-	return dbDirLevel
+	return filepath.Join(config.Config.DBConfig.DBDirPath, fmt.Sprint(dbNum), hashedKey[:2], hashedKey[2:4], hashedKey)
 }

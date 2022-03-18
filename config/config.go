@@ -68,6 +68,10 @@ func Init(configFile string) {
 	if err := os.MkdirAll(Config.DBConfig.DBDirPath, 0700); err != nil {
 		log.Fatal(err)
 	}
+
+	if err := os.MkdirAll(Config.DBConfig.InternalDirPath, 0700); err != nil {
+		log.Fatal(err)
+	}
 }
 
 // parse fills the config fields with the right stuff

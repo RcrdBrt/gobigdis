@@ -27,12 +27,13 @@ import (
 
 type HandlerFn func(r *Request) error
 
-func NewV1Handler() map[string]HandlerFn {
+// NewHandlerV1 implements the redis commands and sanitizes the input before calling the storage layer
+func NewHandlerV1() map[string]HandlerFn {
 	m := make(map[string]HandlerFn)
 
 	m["ping"] = func(r *Request) error {
 		reply := &StatusReply{
-			Code: "PONG",
+			code: "PONG",
 		}
 
 		if _, err := reply.WriteTo(r.Conn); err != nil {
@@ -43,23 +44,29 @@ func NewV1Handler() map[string]HandlerFn {
 	}
 
 	m["select"] = func(r *Request) error {
-		dbNum, err := strconv.Atoi(string(r.Args[0]))
-		if err != nil {
-			return err
-		}
-
 		var reply ReplyWriter
-		if dbNum > config.Config.DBConfig.DBMaxNum-1 || dbNum < 0 {
-			reply = &BulkReply{
-				value: []byte(""),
+		if len(r.Args) != 1 {
+			reply = &ErrorReply{
+				msg: "ERR wrong number of arguments for 'select' command",
 			}
 		} else {
-			reply = &StatusReply{
-				Code: "OK",
+			dbNum, err := strconv.Atoi(string(r.Args[0]))
+			if err != nil {
+				return err
 			}
 
-			if err := storage.NewDB(dbNum); err != nil {
-				return err
+			if dbNum > config.Config.DBConfig.DBMaxNum-1 || dbNum < 0 {
+				reply = &ErrorReply{
+					msg: "ERR DB index is out of range",
+				}
+			} else {
+				reply = &StatusReply{
+					code: "OK",
+				}
+
+				if err := storage.NewDB(dbNum); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -71,8 +78,9 @@ func NewV1Handler() map[string]HandlerFn {
 	}
 
 	m["command"] = func(r *Request) error {
+		// placeholder reply
 		reply := &StatusReply{
-			Code: "Welcome to GoBigDis",
+			code: "Welcome to GoBigDis",
 		}
 
 		if _, err := reply.WriteTo(r.Conn); err != nil {
@@ -83,6 +91,10 @@ func NewV1Handler() map[string]HandlerFn {
 	}
 
 	m["get"] = func(r *Request) error {
+		if len(r.Args) != 1 {
+			return fmt.Errorf("ERR wrong number of arguments for 'get' command")
+		}
+
 		value, err := storage.Get(r.GetDBNum(), r.Args)
 		if err != nil {
 			return err
@@ -100,12 +112,17 @@ func NewV1Handler() map[string]HandlerFn {
 	}
 
 	m["set"] = func(r *Request) error {
+		// TODO: expiration
+		if len(r.Args) < 2 {
+			return fmt.Errorf("ERR wrong number of arguments for 'set' command")
+		}
+
 		if err := storage.Set(r.GetDBNum(), r.Args); err != nil {
 			return err
 		}
 
 		reply := &StatusReply{
-			Code: "OK",
+			code: "OK",
 		}
 
 		if _, err := reply.WriteTo(r.Conn); err != nil {
@@ -116,12 +133,16 @@ func NewV1Handler() map[string]HandlerFn {
 	}
 
 	m["flushdb"] = func(r *Request) error {
+		if len(r.Args) != 0 {
+			return fmt.Errorf("ERR wrong number of arguments for 'flushdb' command")
+		}
+
 		if err := storage.FlushDB(r.GetDBNum()); err != nil {
 			return err
 		}
 
 		reply := &StatusReply{
-			Code: "OK",
+			code: "OK",
 		}
 
 		if _, err := reply.WriteTo(r.Conn); err != nil {

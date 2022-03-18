@@ -28,13 +28,12 @@ import (
 )
 
 var (
-	host       = flag.String("h", "localhost", "`IP` address to listen on")
-	port       = flag.Int("p", 6389, "`port` of the socket")
-	dbRoot     = flag.String("d", "", "database root `folder` (default \"$HOME/.gobigdis\")")
 	configFile = flag.String("c", "", "`path` to the config file (optional)")
 )
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Llongfile)
+
 	flagDefaultUsage := flag.Usage
 	flag.Usage = func() {
 		fmt.Print("GoBigdis is a persistent database that implements the Redis server protocol.\n\n")
@@ -43,11 +42,11 @@ func main() {
 
 	flag.Parse()
 
-	config.Init(*configFile, *dbRoot, *host, *port)
+	config.Init(*configFile)
 
 	storage.Init()
 
-	log.Printf("GoBigdis is listening on %s:%d\n", config.Config.ServerConfig.Host, config.Config.ServerConfig.Port)
+	fmt.Printf("GoBigdis is listening on %s:%d\n", config.Config.ServerConfig.Host, config.Config.ServerConfig.Port)
 
-	log.Fatal(network.StartServer())
+	network.StartServer()
 }

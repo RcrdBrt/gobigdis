@@ -206,11 +206,11 @@ import (
 type ReplyWriter io.WriterTo
 
 type StatusReply struct {
-	Code string
+	code string
 }
 
 func (r *StatusReply) WriteTo(w io.Writer) (int64, error) {
-	n, err := w.Write([]byte("+" + r.Code + "\r\n"))
+	n, err := w.Write([]byte("+" + r.code + "\r\n"))
 	return int64(n), err
 }
 
@@ -228,7 +228,7 @@ type ErrorReply struct {
 }
 
 func (r *ErrorReply) WriteTo(w io.Writer) (int64, error) {
-	n, err := fmt.Fprintf(w, "-%s", r.msg)
+	n, err := fmt.Fprintf(w, "-%s\r\n", r.msg)
 
 	return int64(n), err
 }
@@ -306,7 +306,7 @@ func (r *MonitorReply) WriteTo(w io.Writer) (int64, error) {
 	statusReply := &StatusReply{}
 	totalBytes := int64(0)
 	for line := range r.c {
-		statusReply.Code = line
+		statusReply.code = line
 		if n, err := statusReply.WriteTo(w); err != nil {
 			totalBytes += n
 			return int64(totalBytes), err

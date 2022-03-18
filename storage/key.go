@@ -18,34 +18,17 @@
 package storage
 
 import (
-	"fmt"
-	"log"
 	"os"
-	"time"
-
-	"github.com/RcrdBrt/gobigdis/alg"
+	"path/filepath"
 )
 
-type ExpiringKey struct {
-	alg.Key
-	Expire time.Time
-}
-
 func Get(dbNum int, args [][]byte) ([]byte, error) {
-	if len(args) < 1 {
-		return nil, fmt.Errorf("wrong command syntax")
-	}
+	fsLock.RLock()
+	defer fsLock.RUnlock()
 
-	key := cache.NewKey(dbNum, args[0])
+	path := pathFromKey(dbNum, args[0])
 
-	cache.FSRWL.RLock()
-	defer cache.FSRWL.RUnlock()
-
-	if !cache.Match(key) {
-		return nil, nil
-	}
-
-	value, err := os.ReadFile(key.FilePath())
+	value, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -57,24 +40,16 @@ func Get(dbNum int, args [][]byte) ([]byte, error) {
 }
 
 func Set(dbNum int, args [][]byte) error {
-	if len(args) < 2 {
-		return fmt.Errorf("wrong command syntax")
+	fsLock.Lock()
+	defer fsLock.Unlock()
+
+	path := pathFromKey(dbNum, args[0])
+
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return err
 	}
 
-	cache.FSRWL.Lock()
-	defer cache.FSRWL.Unlock()
-
-	key := cache.NewKey(dbNum, args[0])
-
-	if !cache.Match(key) {
-		if err := os.MkdirAll(key.ParentPath(), 0700); err != nil {
-			return err
-		}
-
-		cache.Add(key)
-	}
-
-	if err := os.WriteFile(key.FilePath(), args[1], 0600); err != nil {
+	if err := os.WriteFile(path, args[1], 0600); err != nil {
 		return err
 	}
 
@@ -82,35 +57,23 @@ func Set(dbNum int, args [][]byte) error {
 }
 
 func Del(dbNum int, args [][]byte) (int, error) {
-	key := cache.NewKey(dbNum, args[0])
+	fsLock.Lock()
+	defer fsLock.Unlock()
 
-	cache.FSRWL.Lock()
-	defer cache.FSRWL.Unlock()
+	var deleted int
+	// best-effort deletion, doesn't revert in case of mid-iteration errors
+	for _, v := range args {
+		path := pathFromKey(dbNum, v)
 
-	counter := 0
-
-	if err := os.Remove(key.FilePath()); err != nil && !os.IsNotExist(err) {
-		return counter, err
-	} else {
-		if !os.IsNotExist(err) {
-			counter++
+		if err := os.Remove(path); err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return deleted, err
 		}
+
+		deleted++
 	}
 
-	go func() {
-		cache.FSRWL.RLock()
-		fileList, err := os.ReadDir(key.ParentPath())
-		cache.FSRWL.RUnlock()
-		if err != nil && !os.IsNotExist(err) {
-			log.Println(err)
-			return
-		}
-
-		if len(fileList) == 0 {
-			// deepest folder is empty, update the cache
-			cache.Set(key, false)
-		}
-	}()
-
-	return counter, nil
+	return deleted, nil
 }
