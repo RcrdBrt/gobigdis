@@ -1,9 +1,7 @@
 {
     "db": {
-        "db_dir": "",
-        "db_max_num": 16
+        "max_num": 16
     },
-
     "server": {
         "host": "localhost",
         "port": 6389
