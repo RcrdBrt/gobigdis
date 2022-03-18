@@ -3,3 +3,4 @@
 PKGBUILD
 pre-push
 *.json
+*.pdf
