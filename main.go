@@ -47,5 +47,7 @@ func main() {
 
 	storage.Init()
 
+	log.Printf("GoBigdis is listening on %s:%d\n", config.Config.ServerConfig.Host, config.Config.ServerConfig.Port)
+
 	log.Fatal(network.StartServer())
 }

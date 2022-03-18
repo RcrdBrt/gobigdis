@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/RcrdBrt/gobigdis/config"
 	"github.com/RcrdBrt/gobigdis/storage"
 )
 
@@ -47,12 +48,19 @@ func NewV1Handler() map[string]HandlerFn {
 			return err
 		}
 
-		if err := storage.NewDB(dbNum); err != nil {
-			return err
-		}
+		var reply ReplyWriter
+		if dbNum > config.Config.DBConfig.DBMaxNum-1 || dbNum < 0 {
+			reply = &BulkReply{
+				value: []byte(""),
+			}
+		} else {
+			reply = &StatusReply{
+				Code: "OK",
+			}
 
-		reply := &StatusReply{
-			Code: "OK",
+			if err := storage.NewDB(dbNum); err != nil {
+				return err
+			}
 		}
 
 		if _, err := reply.WriteTo(r.Conn); err != nil {
@@ -158,6 +166,16 @@ func NewV1Handler() map[string]HandlerFn {
 		if _, err := reply.WriteTo(r.Conn); err != nil {
 			return err
 		}
+
+		return nil
+	}
+
+	m["hget"] = func(r *Request) error {
+
+		return nil
+	}
+
+	m["hset"] = func(r *Request) error {
 
 		return nil
 	}
