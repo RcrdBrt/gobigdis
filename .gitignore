@@ -2,3 +2,4 @@
 .gobigdis/
 PKGBUILD
 pre-push
+*.json
