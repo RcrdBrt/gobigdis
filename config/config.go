@@ -43,6 +43,7 @@ type config struct {
 		DBDirPath       string `json:"path"`
 		DBMaxNum        int    `json:"max_num"`
 		InternalDirPath string
+		WalPath         string
 	} `json:"db,omitempty"`
 	ServerConfig *struct {
 		Host string `json:"host"`
@@ -65,11 +66,13 @@ func Init(configFile string) {
 		Config = parseAndValidate(content)
 	}
 
+	Config.DBConfig.WalPath = filepath.Join(Config.DBConfig.InternalDirPath, "wal")
+
 	if err := os.MkdirAll(Config.DBConfig.DBDirPath, 0700); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := os.MkdirAll(Config.DBConfig.InternalDirPath, 0700); err != nil {
+	if err := os.MkdirAll(Config.DBConfig.WalPath, 0700); err != nil {
 		log.Fatal(err)
 	}
 }
