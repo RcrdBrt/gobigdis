@@ -27,9 +27,12 @@ import (
 	"sync"
 
 	"github.com/RcrdBrt/gobigdis/config"
+	"github.com/RcrdBrt/gobigdis/wal"
 )
 
 var fsLock sync.RWMutex
+
+var logWriter wal.Writer
 
 func Init() {
 	versionFilePath := filepath.Join(config.Config.DBConfig.InternalDirPath, "VERSION")
@@ -60,6 +63,7 @@ func Init() {
 		}
 	}
 
+	// TODO: write only when there is a version mismatch
 	if _, err := versionFile.Write([]byte(fmt.Sprint(config.STORAGE_VERSION))); err != nil {
 		log.Fatal(err)
 	}
@@ -67,6 +71,10 @@ func Init() {
 	if err := versionFile.Sync(); err != nil {
 		log.Fatal(err)
 	}
+
+	nextSeq, err := wal.RecoverLog(0)
+
+	logWriter = wal.NewWriter()
 }
 
 func NewDB(dbNum int) error {

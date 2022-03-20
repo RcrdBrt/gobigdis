@@ -20,13 +20,15 @@ package storage
 import (
 	"os"
 	"path/filepath"
+
+	"github.com/RcrdBrt/gobigdis/utils"
 )
 
 func Get(dbNum int, args [][]byte) ([]byte, error) {
 	fsLock.RLock()
 	defer fsLock.RUnlock()
 
-	path := pathFromKey(dbNum, args[0])
+	path := utils.PathFromKey(dbNum, args[0])
 
 	value, err := os.ReadFile(path)
 	if err != nil {
@@ -43,7 +45,7 @@ func Set(dbNum int, args [][]byte) error {
 	fsLock.Lock()
 	defer fsLock.Unlock()
 
-	path := pathFromKey(dbNum, args[0])
+	path := utils.PathFromKey(dbNum, args[0])
 
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return err
@@ -63,7 +65,7 @@ func Del(dbNum int, args [][]byte) (int, error) {
 	var deleted int
 	// best-effort deletion, doesn't revert in case of mid-iteration errors
 	for _, v := range args {
-		path := pathFromKey(dbNum, v)
+		path := utils.PathFromKey(dbNum, v)
 
 		if err := os.Remove(path); err != nil {
 			if os.IsNotExist(err) {

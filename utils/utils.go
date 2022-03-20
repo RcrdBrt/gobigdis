@@ -26,7 +26,7 @@ import (
 	"github.com/RcrdBrt/gobigdis/config"
 )
 
-func pathFromKey(dbNum int, key []byte) string {
+func PathFromKey(dbNum int, key []byte) string {
 	shaKey := sha256.Sum256(key)
 	hashedKey := hex.EncodeToString(shaKey[:])
 

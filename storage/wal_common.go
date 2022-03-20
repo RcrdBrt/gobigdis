@@ -32,9 +32,10 @@
 
 // see: https://github.com/danchia/ddb/blob/master/wal
 
-package wal
+package storage
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -90,4 +91,35 @@ func listLog() ([]string, error) {
 	sort.Strings(logFiles)
 
 	return logFiles, nil
+}
+
+func RecoverLog(lastApplied uint64) (int, error) {
+	sc, err := NewScanner()
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Println("No WAL files found")
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	var n, applied int
+	seqNo := lastApplied
+
+	for sc.Scan() {
+		record := sc.Record()
+		n++
+
+		utils.Debugf("Reading wal record %s", record)
+
+		if record.seq <= seqNo {
+			continue
+		}
+
+		applied++
+
+		seqNo = record.seq
+
+	}
+
 }

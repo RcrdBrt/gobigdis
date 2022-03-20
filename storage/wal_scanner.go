@@ -30,7 +30,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-package wal
+package storage
 
 import (
 	"bytes"
@@ -60,7 +60,7 @@ type Scanner struct {
 
 // NewScanner returns a log scanner over all the log files found in the wal directory.
 // Returns ErrNotExist if there are no log files.
-func NewScanner(dirname string) (*Scanner, error) {
+func NewScanner() (*Scanner, error) {
 	logs, err := listLog()
 	if err != nil {
 		return nil, err

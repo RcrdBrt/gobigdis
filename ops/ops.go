@@ -1,4 +1,4 @@
-package utils
+package ops
 
 type RedisOp int
 
