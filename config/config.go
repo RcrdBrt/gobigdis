@@ -25,13 +25,7 @@ import (
 	"path/filepath"
 )
 
-/*
-	CacheDepth is a const var just for documentation purposes.
-	It avoids adding "2" as a condition for for-cycles, so the cycles' purpose
-	is somewhat clearer.
-	It is not supposed to be ever changed as it's a hard-coded feature.
-*/
-const CacheDepth = 2
+const MaxKeySize = 1024 * 8 // 8KB
 
 const STORAGE_VERSION = 1
 

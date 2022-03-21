@@ -15,29 +15,20 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-package internal
+package utils
 
 import (
-	"net"
-	"strconv"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"path/filepath"
+
+	"github.com/RcrdBrt/gobigdis/config"
 )
 
-type Request struct {
-	DB   [][]byte
-	Name string
-	Args [][]byte
-	Conn net.Conn
-}
+func PathFromKey(dbNum int, key []byte) string {
+	shaKey := sha256.Sum256(key)
+	hashedKey := hex.EncodeToString(shaKey[:])
 
-func (r *Request) GetDBNum() int {
-	if len(r.DB) < 1 {
-		return 0
-	}
-
-	dbNum, err := strconv.Atoi(string(r.DB[0]))
-	if err != nil {
-		return 0
-	}
-
-	return dbNum
+	return filepath.Join(config.Config.DBConfig.DBDirPath, fmt.Sprint(dbNum), hashedKey[:2], hashedKey[2:4], hashedKey)
 }

@@ -15,7 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-package network
+package db
 
 import (
 	"bufio"
@@ -24,26 +24,25 @@ import (
 	"net"
 
 	"github.com/RcrdBrt/gobigdis/config"
-
-	"github.com/RcrdBrt/gobigdis/internal"
+	"github.com/RcrdBrt/gobigdis/utils"
 )
 
-type server struct {
+type redisTCPServer struct {
 	host         string
 	port         int
 	monitorChans []chan string
-	methods      map[string]internal.HandlerFn
+	methods      map[string]handlerFn
 	listener     *net.TCPListener
 }
 
-func StartServer() {
-	srv := &server{
+func startRedisTCPServer() {
+	srv := &redisTCPServer{
 		host:         config.Config.ServerConfig.Host,
 		port:         config.Config.ServerConfig.Port,
 		monitorChans: []chan string{},
 	}
 
-	srv.methods = internal.NewHandlerV1()
+	srv.methods = newHandlerV1()
 
 	listener, err := net.ListenTCP("tcp", &net.TCPAddr{
 		IP:   net.ParseIP(srv.host),
@@ -68,7 +67,7 @@ func StartServer() {
 	}
 }
 
-func (srv *server) serveClient(conn net.Conn) {
+func (srv *redisTCPServer) serveClient(conn net.Conn) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Fprintf(conn, "-%s\r\n", err)
@@ -97,7 +96,7 @@ func (srv *server) serveClient(conn net.Conn) {
 			return
 		}
 
-		internal.Debugf("db %d: '%s' '%s'\n", request.GetDBNum(), request.Name, request.Args)
+		utils.Debugf("db %d: '%s' '%s'\n", request.GetDBNum(), request.Name, request.Args)
 
 		if err := srv.methods[request.Name](request); err != nil {
 			panic(err)

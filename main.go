@@ -22,9 +22,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/RcrdBrt/gobigdis/config"
-	"github.com/RcrdBrt/gobigdis/network"
-	"github.com/RcrdBrt/gobigdis/storage"
+	"github.com/RcrdBrt/gobigdis/db"
 )
 
 var (
@@ -42,11 +40,7 @@ func main() {
 
 	flag.Parse()
 
-	config.Init(*configFile)
+	db.Init(*configFile)
 
-	storage.Init()
-
-	fmt.Printf("GoBigdis is listening on %s:%d\n", config.Config.ServerConfig.Host, config.Config.ServerConfig.Port)
-
-	network.StartServer()
+	db.DB.StartServer()
 }

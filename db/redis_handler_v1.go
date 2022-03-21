@@ -15,7 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-package internal
+package db
 
 import (
 	"fmt"
@@ -25,13 +25,13 @@ import (
 	"github.com/RcrdBrt/gobigdis/storage"
 )
 
-type HandlerFn func(r *Request) error
+type handlerFn func(r *redisClientRequest) error
 
-// NewHandlerV1 implements the redis commands and sanitizes the input before calling the storage layer
-func NewHandlerV1() map[string]HandlerFn {
-	m := make(map[string]HandlerFn)
+// newHandlerV1 implements the redis commands and sanitizes the input before calling the storage layer
+func newHandlerV1() map[string]handlerFn {
+	m := make(map[string]handlerFn)
 
-	m["ping"] = func(r *Request) error {
+	m["ping"] = func(r *redisClientRequest) error {
 		reply := &StatusReply{
 			code: "PONG",
 		}
@@ -43,7 +43,7 @@ func NewHandlerV1() map[string]HandlerFn {
 		return nil
 	}
 
-	m["select"] = func(r *Request) error {
+	m["select"] = func(r *redisClientRequest) error {
 		var reply ReplyWriter
 		if len(r.Args) != 1 {
 			reply = &ErrorReply{
@@ -64,7 +64,7 @@ func NewHandlerV1() map[string]HandlerFn {
 					code: "OK",
 				}
 
-				if err := storage.NewDB(dbNum); err != nil {
+				if err := DB.Select(dbNum); err != nil {
 					return err
 				}
 			}
@@ -77,7 +77,7 @@ func NewHandlerV1() map[string]HandlerFn {
 		return nil
 	}
 
-	m["command"] = func(r *Request) error {
+	m["command"] = func(r *redisClientRequest) error {
 		// placeholder reply
 		reply := &StatusReply{
 			code: "Welcome to GoBigDis",
@@ -90,12 +90,12 @@ func NewHandlerV1() map[string]HandlerFn {
 		return nil
 	}
 
-	m["get"] = func(r *Request) error {
+	m["get"] = func(r *redisClientRequest) error {
 		if len(r.Args) != 1 {
 			return fmt.Errorf("ERR wrong number of arguments for 'get' command")
 		}
 
-		value, err := storage.Get(r.GetDBNum(), r.Args)
+		value, err := DB.Get(r.Args)
 		if err != nil {
 			return err
 		}
@@ -111,7 +111,7 @@ func NewHandlerV1() map[string]HandlerFn {
 		return nil
 	}
 
-	m["set"] = func(r *Request) error {
+	m["set"] = func(r *redisClientRequest) error {
 		// TODO: expiration
 		if len(r.Args) < 2 {
 			return fmt.Errorf("ERR wrong number of arguments for 'set' command")
@@ -132,7 +132,7 @@ func NewHandlerV1() map[string]HandlerFn {
 		return nil
 	}
 
-	m["flushdb"] = func(r *Request) error {
+	m["flushdb"] = func(r *redisClientRequest) error {
 		if len(r.Args) != 0 {
 			return fmt.Errorf("ERR wrong number of arguments for 'flushdb' command")
 		}
@@ -152,7 +152,7 @@ func NewHandlerV1() map[string]HandlerFn {
 		return nil
 	}
 
-	m["del"] = func(r *Request) error {
+	m["del"] = func(r *redisClientRequest) error {
 		deleted, err := storage.Del(r.GetDBNum(), r.Args)
 		if err != nil {
 			return err
@@ -169,7 +169,7 @@ func NewHandlerV1() map[string]HandlerFn {
 		return nil
 	}
 
-	m["config"] = func(r *Request) error {
+	m["config"] = func(r *redisClientRequest) error {
 		reply := BulkReply{
 			value: []byte(""),
 		}
@@ -191,12 +191,12 @@ func NewHandlerV1() map[string]HandlerFn {
 		return nil
 	}
 
-	m["hget"] = func(r *Request) error {
+	m["hget"] = func(r *redisClientRequest) error {
 
 		return nil
 	}
 
-	m["hset"] = func(r *Request) error {
+	m["hset"] = func(r *redisClientRequest) error {
 
 		return nil
 	}

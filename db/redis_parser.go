@@ -192,40 +192,115 @@
       incurred by, or claims asserted against, such Contributor by reason
       of your accepting any such warranty or additional liability.
 */
-package internal
+package db
 
 import (
+	"bufio"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
-	"runtime"
+	"io/ioutil"
 	"strings"
+
+	"github.com/RcrdBrt/gobigdis/utils"
 )
 
-var Stderr = io.Writer(os.Stderr)
-
-// This closure is a no-op unless the DEBUG env is non empty.
-var Debugf = func(format string, a ...interface{}) {}
-
-func init() {
-	if os.Getenv("DEBUG") != "" {
-		Debugf = actualDebugf
+func parseRequest(r *bufio.Reader) (*redisClientRequest, error) {
+	// first line of redis request should be:
+	// *<number of arguments>CRLF
+	line, err := r.ReadString('\n')
+	if err != nil {
+		return nil, err
 	}
+	// note that this line also protects it from negative integers
+	var argsCount int
+
+	// Multiline request:
+	if line[0] == '*' {
+		if _, err := fmt.Sscanf(line, "*%d\r\n", &argsCount); err != nil {
+			return nil, malformed("*<numberOfArguments>", line)
+		}
+		// All next lines are pairs of:
+		//$<number of bytes of argument 1> CR LF
+		//<argument data> CR LF
+		// first argument is a command name, so just convert
+		firstArg, err := readArgument(r)
+		if err != nil {
+			return nil, err
+		}
+
+		args := make([][]byte, argsCount-1)
+		for i := 0; i < argsCount-1; i += 1 {
+			if args[i], err = readArgument(r); err != nil {
+				return nil, err
+			}
+		}
+
+		return &redisClientRequest{
+			Name: strings.ToLower(string(firstArg)),
+			Args: args,
+		}, nil
+	}
+
+	// Inline request:
+	fields := strings.Split(strings.Trim(line, "\r\n"), " ")
+
+	var args [][]byte
+	if len(fields) > 1 {
+		for _, arg := range fields[1:] {
+			args = append(args, []byte(arg))
+		}
+	}
+	return &redisClientRequest{
+		Name: strings.ToLower(string(fields[0])),
+		Args: args,
+	}, nil
+
 }
 
-// If Docker is in daemon mode, also send the debug info on the socket
-// Convenience debug function, courtesy of http://github.com/dotcloud/docker
-func actualDebugf(format string, a ...interface{}) {
-	// Retrieve the stack infos
-	_, file, line, ok := runtime.Caller(1)
-	if !ok {
-		file = "<unknown>"
-		line = -1
-	} else {
-		file = file[strings.LastIndex(file, string(filepath.Separator))+1:]
+func readArgument(r *bufio.Reader) ([]byte, error) {
+
+	line, err := r.ReadString('\n')
+	if err != nil {
+		return nil, malformed("$<argumentLength>", line)
 	}
-	fmt.Fprintf(Stderr, "[%d] [debug] %s:%d ", os.Getpid(), file, line)
-	fmt.Fprintf(Stderr, format, a...)
-	fmt.Fprintln(Stderr)
+	var argSize int
+	if _, err := fmt.Sscanf(line, "$%d\r\n", &argSize); err != nil {
+		return nil, malformed("$<argumentSize>", line)
+	}
+
+	// I think int is safe here as the max length of request
+	// should be less then max int value?
+	data, err := ioutil.ReadAll(io.LimitReader(r, int64(argSize)))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(data) != argSize {
+		return nil, malformedLength(argSize, len(data))
+	}
+
+	// Now check for trailing CR
+	if b, err := r.ReadByte(); err != nil || b != '\r' {
+		return nil, malformedMissingCRLF()
+	}
+
+	// And LF
+	if b, err := r.ReadByte(); err != nil || b != '\n' {
+		return nil, malformedMissingCRLF()
+	}
+
+	return data, nil
+}
+
+func malformed(expected string, got string) error {
+	utils.Debugf("Malformed request: %q does not match %q\n", got, expected)
+	return fmt.Errorf("malformed request: %q does not match %q\r", got, expected)
+}
+
+func malformedLength(expected int, got int) error {
+	return fmt.Errorf("malformed request: argument length %d does not match %d\r", got, expected)
+}
+
+func malformedMissingCRLF() error {
+	return fmt.Errorf("malformed request: line should end with %q\r", "\r\n")
 }

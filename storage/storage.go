@@ -24,12 +24,9 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"sync"
 
 	"github.com/RcrdBrt/gobigdis/config"
 )
-
-var fsLock sync.RWMutex
 
 func Init() {
 	versionFilePath := filepath.Join(config.Config.DBConfig.InternalDirPath, "VERSION")
@@ -58,6 +55,10 @@ func Init() {
 				log.Fatal(err)
 			}
 		}
+	}
+
+	if err := versionFile.Truncate(0); err != nil {
+		log.Fatal(err)
 	}
 
 	if _, err := versionFile.Write([]byte(fmt.Sprint(config.STORAGE_VERSION))); err != nil {

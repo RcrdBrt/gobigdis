@@ -192,7 +192,7 @@
       incurred by, or claims asserted against, such Contributor by reason
       of your accepting any such warranty or additional liability.
 */
-package internal
+package db
 
 import (
 	"bytes"
@@ -201,6 +201,8 @@ import (
 	"io"
 	"reflect"
 	"strconv"
+
+	"github.com/RcrdBrt/gobigdis/utils"
 )
 
 type ReplyWriter io.WriterTo
@@ -290,7 +292,7 @@ func writeBytes(value interface{}, w io.Writer) (int64, error) {
 		return int64(wrote), err
 	}
 
-	Debugf("Invalid type sent to writeBytes: %v", reflect.TypeOf(value).Name())
+	utils.Debugf("Invalid type sent to writeBytes: %v", reflect.TypeOf(value).Name())
 	return 0, errors.New("invalid type sent to writeBytes")
 }
 
