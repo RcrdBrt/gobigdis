@@ -4,3 +4,4 @@ PKGBUILD
 pre-push
 *.json
 *.pdf
+DATA-DIR/
