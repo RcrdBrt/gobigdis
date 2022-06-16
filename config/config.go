@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 )
 
-const MaxKeySize = 1024 * 8 // 8KB
+const MaxKeySize = 1024 * 8 // 8 KiB
 
 const STORAGE_VERSION = 1
 
