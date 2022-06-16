@@ -36,7 +36,7 @@ type Memtable struct {
 	rnd  *rand.Rand
 
 	// seqNoUpper is the largest log sequence number that has been applied.
-	seqNoUpper int64
+	seqNoUpper uint64
 
 	size int64
 	mu   sync.Mutex
@@ -57,7 +57,7 @@ func (n *node) atomicLoadNext(l int) *node {
 	return (*node)(atomic.LoadPointer(&n.next[l]))
 }
 
-func New(seqNo int64) *Memtable {
+func New(seqNo uint64) *Memtable {
 	h := &node{
 		key:   "",
 		value: nil,
@@ -72,7 +72,7 @@ func New(seqNo int64) *Memtable {
 
 // Insert inserts (key, timestamp, value) into the memtable.
 // Requires that (key, timestamp) does not already exist.
-func (m *Memtable) Insert(seqNo int64, key string, timestamp int64, value []byte) {
+func (m *Memtable) Insert(seqNo uint64, key string, timestamp int64, value []byte) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -115,7 +115,7 @@ func (m *Memtable) SizeBytes() int64 {
 }
 
 // SequenceUpper returns the largest sequence number applied.
-func (m *Memtable) SequenceUpper() int64 {
+func (m *Memtable) SequenceUpper() uint64 {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.seqNoUpper

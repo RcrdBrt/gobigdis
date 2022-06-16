@@ -3,17 +3,19 @@ package wal
 import "github.com/RcrdBrt/gobigdis/ops"
 
 type LogRecord struct {
+	DBNum     int
 	Seq       int64
 	Op        ops.RedisOp
-	key       string
+	Key       []byte
 	timestamp int64
-	value     []byte
+	Value     []byte
 }
 
 func (l *LogRecord) Reset() {
+	l.DBNum = 0
 	l.Seq = 0
 	l.Op = ops.RedisOp(0)
-	l.key = ""
+	l.Key = nil
 	l.timestamp = 0
-	l.value = nil
+	l.Value = nil
 }

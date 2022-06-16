@@ -3,11 +3,13 @@ package wal
 import (
 	"fmt"
 	"hash/crc32"
-	"io/ioutil"
+	"io/fs"
+	"log"
+	"path/filepath"
 	"sort"
 	"strings"
 
-	"github.com/RcrdBrt/gobigdis/utils"
+	"github.com/RcrdBrt/gobigdis/config"
 )
 
 const (
@@ -27,31 +29,30 @@ type filenameInfo struct {
 	seqNo int64
 }
 
-func listLogFiles(dirname string) ([]filenameInfo, error) {
-	fis, err := ioutil.ReadDir(dirname)
-	if err != nil {
-		return nil, err
-	}
-	parsedNames := make([]filenameInfo, 0, len(fis))
-	for _, fi := range fis {
-		name := fi.Name()
-		if !(strings.HasPrefix(name, "wal-") && strings.HasSuffix(name, ".log")) {
-			utils.Debugf("Skipping file %v in WAL directory, does not appear to be a WAL file.", name)
-			continue
+func listLogFiles() ([]filenameInfo, error) {
+	var parsedLogFileNames []filenameInfo
+	if err := filepath.WalkDir(config.Config.DBConfig.InternalDirPath, func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() || !strings.HasPrefix(d.Name(), "wal-") || !strings.HasSuffix(d.Name(), ".log") {
+			return nil
 		}
 
-		pn, err := parseFilename(name)
+		pn, err := parseFilename(d.Name())
 		if err != nil {
-			return nil, err
+			return err
 		}
-		parsedNames = append(parsedNames, pn)
+
+		parsedLogFileNames = append(parsedLogFileNames, pn)
+
+		return nil
+	}); err != nil {
+		log.Fatal(err)
 	}
 
-	sort.Slice(parsedNames, func(i, j int) bool {
-		return parsedNames[i].seqNo < parsedNames[j].seqNo
+	sort.Slice(parsedLogFileNames, func(i, j int) bool {
+		return parsedLogFileNames[i].seqNo < parsedLogFileNames[j].seqNo
 	})
 
-	return parsedNames, nil
+	return parsedLogFileNames, nil
 }
 
 func parseFilename(n string) (filenameInfo, error) {

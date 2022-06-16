@@ -38,15 +38,15 @@ type Scanner struct {
 	err error
 }
 
-// NewScanner returns a log scanner over all the log files found in dirname.
+// NewScanner returns a log scanner over all the log files found in the internal dir.
 // Returns ErrNotExist if there are no log files.
-func NewScanner(dirname string) (*Scanner, error) {
-	parsedNames, err := listLogFiles(dirname)
+func NewScanner() (*Scanner, error) {
+	parsedNames, err := listLogFiles()
 	if err != nil {
 		return nil, err
 	}
 
-	return &Scanner{dirname: dirname, filenameInfos: parsedNames}, nil
+	return &Scanner{filenameInfos: parsedNames}, nil
 }
 
 // Scan advances the fileScanner to the next log record, which will then be

@@ -48,7 +48,7 @@ var (
 )
 
 type SstMeta struct {
-	AppliedUntil int64
+	AppliedUntil uint64
 	Filename     string
 }
 
