@@ -39,13 +39,13 @@ type Cache struct {
 }
 
 // NewCache returns a Cache.
-func NewCache(targetSize int64) *Cache {
-	targetYoungSize := targetSize / 5
-	targetOldSize := targetSize - targetYoungSize
+func NewCache() *Cache {
+	targetYoungSize := blockCacheSize / 5
+	targetOldSize := blockCacheSize - targetYoungSize
 
 	if targetYoungSize <= 0 || targetOldSize <= 0 {
-		utils.Debugf("targetSize %v resulted in young, old of %v, %v",
-			targetSize, targetYoungSize, targetOldSize)
+		utils.Debugf("blockCacheSize %v resulted in young, old of %v, %v",
+			blockCacheSize, targetYoungSize, targetOldSize)
 	}
 
 	return &Cache{

@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -12,9 +13,8 @@ import (
 	"github.com/RcrdBrt/gobigdis/sst"
 	"github.com/RcrdBrt/gobigdis/storage"
 	"github.com/RcrdBrt/gobigdis/utils"
+	"github.com/RcrdBrt/gobigdis/wal"
 )
-
-const blockCacheSize = 1 * 1024 * 1024 * 1024 // 1 GiB
 
 const memtableFlushSize = 20 * 1024 * 1024 // 20 MiB
 
@@ -27,6 +27,7 @@ type database struct {
 	blockCache     *sst.Cache
 	manifest       *descriptor
 	compactingSsts []string
+	logWriter      *wal.Writer
 
 	dbNum int
 }
@@ -39,12 +40,12 @@ func Init(configFile string) {
 	storage.Init()
 
 	var db = &database{
-		blockCache: sst.NewCache(blockCacheSize),
+		blockCache: sst.NewCache(),
 		manifest:   loadLatestDescriptor(), // search for most recent MANIFEST file
 		dbNum:      0,
 	}
 
-	lastAppliedSeqNo := uint64(0)
+	lastAppliedSeqNo := int64(0)
 	for _, sstMeta := range db.manifest.sstMetas {
 		if sstMeta.AppliedUntil > lastAppliedSeqNo {
 			lastAppliedSeqNo = sstMeta.AppliedUntil
@@ -60,6 +61,20 @@ func Init(configFile string) {
 	}
 
 	db.memtable = memtable.New(lastAppliedSeqNo)
+
+	nextSeq, err := db.recoverLog(lastAppliedSeqNo)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	logWriter, err := wal.NewWriter(nextSeq)
+	if err != nil {
+		log.Fatal(err)
+	}
+	db.logWriter = logWriter
+
+	go db.cleanUnusedFiles()
+	go db.sstCompactor()
 
 	DB = db
 }
@@ -121,4 +136,51 @@ func (d *database) flushIMemtable() {
 	}
 	d.imemtable = nil
 	d.ssts = append(d.ssts, reader)
+}
+
+func (d *database) cleanUnusedFiles() {
+	for range time.Tick(30 * time.Second) {
+		var maxApplied int64
+		d.RLock()
+		for _, sst := range d.descriptor.sstMetas {
+			if sst.AppliedUntil > maxApplied {
+				maxApplied = sst.AppliedUntil
+			}
+		}
+		d.RUnlock()
+		wal.CleanUnusedFiles(maxApplied)
+
+		liveSstFiles := make(map[string]bool)
+		d.RLock()
+		for _, sst := range d.ssts {
+			liveSstFiles[sst.Filename()] = true
+		}
+		for _, f := range d.compactingSsts {
+			liveSstFiles[f] = true
+		}
+		d.RUnlock()
+		utils.Debugf("Live SSTs are %v", liveSstFiles)
+
+		sstFiles, err := sst.GetSstFiles()
+		if err != nil {
+			utils.Debugf("error while scanning SST dir for cleanup: %v", err)
+			continue
+		}
+
+		var cleaned int
+		for _, fn := range sstFiles {
+			fullFn := filepath.Join(config.Config.DBConfig.InternalDirPath, fn)
+			if !liveSstFiles[fullFn] {
+				utils.Debugf("Deleting unused SST %v", fullFn)
+				if err := os.Remove(fullFn); err != nil {
+					utils.Debugf("Error while removing unused SST file %v: %v", fullFn, err)
+				} else {
+					cleaned++
+				}
+			}
+		}
+		if cleaned > 0 {
+			utils.Debugf("Cleaned %v unused SST files", cleaned)
+		}
+	}
 }
