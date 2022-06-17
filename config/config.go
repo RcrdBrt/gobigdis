@@ -34,9 +34,10 @@ var defaultConfig []byte
 
 type config struct {
 	DBConfig *struct {
-		DBDirPath       string `json:"path"`
-		DBMaxNum        int    `json:"max_num"`
-		InternalDirPath string
+		DBDirPath         string `json:"path"`
+		DBMaxNum          int    `json:"max_num"`
+		InternalDirPath   string
+		MemtableFlushSize int64 `json:"memtable_flush_size,omitempty"`
 	} `json:"db,omitempty"`
 	ServerConfig *struct {
 		Host string `json:"host"`
@@ -96,6 +97,10 @@ func parseAndValidate(configFileContent []byte) config {
 	}
 
 	c.DBConfig.InternalDirPath = filepath.Join(c.DBConfig.DBDirPath, "_internal")
+
+	if c.DBConfig.MemtableFlushSize == 0 {
+		c.DBConfig.MemtableFlushSize = 20 * 1024 * 1024 // 20 MiB default flush size for the memtable
+	}
 
 	if c.ServerConfig == nil {
 		// section "server" does not exist in the config file

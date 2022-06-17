@@ -26,9 +26,21 @@ import (
 	"github.com/RcrdBrt/gobigdis/config"
 )
 
-func PathFromKey(dbNum int, key []byte) string {
-	shaKey := sha256.Sum256(key)
+func PathFromKey(dbNum int, key string) string {
+	shaKey := sha256.Sum256([]byte(key))
 	hashedKey := hex.EncodeToString(shaKey[:])
 
 	return filepath.Join(config.Config.DBConfig.DBDirPath, fmt.Sprint(dbNum), hashedKey[:2], hashedKey[2:4], hashedKey)
+}
+
+func ValidateKey(key string) error {
+	if len(key) == 0 {
+		return fmt.Errorf("empty key")
+	}
+
+	if len(key) > config.MaxKeySize {
+		return fmt.Errorf("key too long, must be <= %d chars", config.MaxKeySize)
+	}
+
+	return nil
 }

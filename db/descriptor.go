@@ -28,11 +28,11 @@ var crcTable = crc32.MakeTable(crc32.Castagnoli)
 // Descriptor describes all important DB state (MANIFEST-* files in the internal dir).
 // Not thread-safe, access should be externally synchronized.
 type descriptor struct {
-	sstMetas []sst.SstMeta
+	SstMetas []sst.SstMeta
 
-	h hash.Hash32
+	H hash.Hash32
 
-	version int64
+	Version int64
 }
 
 func loadLatestDescriptor() *descriptor {
@@ -54,10 +54,11 @@ func loadLatestDescriptor() *descriptor {
 	sort.Strings(descriptors)
 
 	if len(descriptors) == 0 {
+		// new db?
 		return &descriptor{
-			version:  0,
-			sstMetas: nil,
-			h:        nil,
+			Version:  0,
+			SstMetas: nil,
+			H:        nil,
 		}
 	}
 
@@ -106,9 +107,9 @@ func (d *descriptor) Save() error {
 	binary.LittleEndian.PutUint32(scratch[:4], uint32(len(buf.Bytes())))
 	binary.LittleEndian.PutUint32(scratch[4:], crc)
 
-	filename := fmt.Sprintf("%s%d", descriptorFilePrefix, d.version)
-	d.version++
-	nextFilename := fmt.Sprintf("%s%d", descriptorFilePrefix, d.version)
+	filename := fmt.Sprintf("%s%d", descriptorFilePrefix, d.Version)
+	d.Version++
+	nextFilename := fmt.Sprintf("%s%d", descriptorFilePrefix, d.Version)
 
 	manifestFile, err := os.OpenFile(filepath.Join(config.Config.DBConfig.InternalDirPath, nextFilename), os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
@@ -143,7 +144,7 @@ func (d *descriptor) Save() error {
 	utils.Debugf("Descriptor saved to %s", nextFilename)
 
 	// delete the previous MANIFEST-* file
-	if d.version > 1 {
+	if d.Version > 1 {
 		if err := os.Remove(filepath.Join(config.Config.DBConfig.InternalDirPath, filename)); err != nil {
 			utils.Debugf("Failed to delete %s: %s", filename, err)
 		}

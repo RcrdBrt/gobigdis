@@ -39,7 +39,7 @@ type Writer struct {
 }
 
 func NewWriter(filename string) (*Writer, error) {
-	f, err := os.Create(filename)
+	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return nil, err
 	}

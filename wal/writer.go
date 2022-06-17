@@ -18,6 +18,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
+	"encoding/gob"
 	"fmt"
 	"hash/crc32"
 	"os"
@@ -53,6 +54,7 @@ func NewWriter(nextSeq int64) (*Writer, error) {
 		recordCh:      make(chan rawRecord, 1000),
 		closeCh:       make(chan struct{}),
 		closeResultCh: make(chan error),
+		filename:      logName(nextSeq),
 	}
 	if err := writer.rollover(nextSeq); err != nil {
 		return nil, err
@@ -76,7 +78,7 @@ func (w *Writer) Append(l *LogRecord, cb func(error)) {
 	w.Lock()
 	defer w.Unlock()
 
-	r, err := w.formRecord(l)
+	r, err := w.generateRawRecord(l)
 	if err != nil {
 		cb(err)
 	}
@@ -85,10 +87,14 @@ func (w *Writer) Append(l *LogRecord, cb func(error)) {
 	w.recordCh <- r
 }
 
-func (w *Writer) formRecord(l *LogRecord) (rawRecord, error) {
+func (w *Writer) generateRawRecord(l *LogRecord) (rawRecord, error) {
 	l.Seq = w.nextSeq
 	w.nextSeq++
 
+	w.buf.Reset()
+	if err := gob.NewEncoder(w.buf).Encode(l); err != nil {
+		return rawRecord{}, err
+	}
 	data := w.buf.Bytes()
 	dataLen := len(data)
 	if uint32(dataLen) > MaxRecordBytes {
@@ -129,7 +135,7 @@ func (w *Writer) rollover(seq int64) error {
 			return err
 		}
 	}
-	f, err := os.Create(fn)
+	f, err := os.OpenFile(fn, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 	if err != nil {
 		return err
 	}

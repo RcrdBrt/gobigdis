@@ -41,6 +41,8 @@ func listLogFiles() ([]filenameInfo, error) {
 			return err
 		}
 
+		pn.name = path // complete path of the wal-*.log file
+
 		parsedLogFileNames = append(parsedLogFileNames, pn)
 
 		return nil

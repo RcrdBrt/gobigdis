@@ -96,7 +96,7 @@ func (db *database) _sstCompact(ssts []*sst.Reader) {
 
 	var newMetas []sst.SstMeta
 	maxApplied := int64(0)
-	for _, sstMeta := range db.manifest.sstMetas {
+	for _, sstMeta := range db.manifest.SstMetas {
 		if filenames[filepath.Join(config.Config.DBConfig.InternalDirPath, sstMeta.Filename)] {
 			if sstMeta.AppliedUntil > maxApplied {
 				maxApplied = sstMeta.AppliedUntil
@@ -113,7 +113,7 @@ func (db *database) _sstCompact(ssts []*sst.Reader) {
 		AppliedUntil: maxApplied,
 	})
 
-	db.manifest.sstMetas = newMetas
+	db.manifest.SstMetas = newMetas
 	if err := db.manifest.Save(); err != nil {
 		panic(err)
 	}

@@ -95,7 +95,7 @@ func newHandlerV1() map[string]handlerFn {
 			return fmt.Errorf("ERR wrong number of arguments for 'get' command")
 		}
 
-		value, err := DB.Get(r.Args)
+		value, err := DB.get(r.GetDBNum(), r.Args)
 		if err != nil {
 			return err
 		}
@@ -117,7 +117,7 @@ func newHandlerV1() map[string]handlerFn {
 			return fmt.Errorf("ERR wrong number of arguments for 'set' command")
 		}
 
-		if err := storage.Set(r.GetDBNum(), r.Args); err != nil {
+		if err := DB.set(r.GetDBNum(), r.Args); err != nil {
 			return err
 		}
 
@@ -153,7 +153,7 @@ func newHandlerV1() map[string]handlerFn {
 	}
 
 	m["del"] = func(r *redisClientRequest) error {
-		deleted, err := storage.Del(r.GetDBNum(), r.Args)
+		deleted, err := DB.del(r.GetDBNum(), r.Args)
 		if err != nil {
 			return err
 		}

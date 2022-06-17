@@ -16,16 +16,13 @@ import (
 	"github.com/RcrdBrt/gobigdis/wal"
 )
 
-const memtableFlushSize = 20 * 1024 * 1024 // 20 MiB
-
 type database struct {
 	sync.RWMutex
-	descriptor     *descriptor
+	manifest       *descriptor
 	memtable       *memtable.Memtable
 	imemtable      *memtable.Memtable
 	ssts           []*sst.Reader
 	blockCache     *sst.Cache
-	manifest       *descriptor
 	compactingSsts []string
 	logWriter      *wal.Writer
 
@@ -46,7 +43,7 @@ func Init(configFile string) {
 	}
 
 	lastAppliedSeqNo := int64(0)
-	for _, sstMeta := range db.manifest.sstMetas {
+	for _, sstMeta := range db.manifest.SstMetas {
 		if sstMeta.AppliedUntil > lastAppliedSeqNo {
 			lastAppliedSeqNo = sstMeta.AppliedUntil
 		}
@@ -130,8 +127,8 @@ func (d *database) flushIMemtable() {
 	// Holding the db lock during descriptor save here - potentially slow.
 	// Most DB operations (including mutations) probably only need a read lock on descriptor
 	// so perhaps we need to finer-grained locking around the descriptor.
-	d.descriptor.sstMetas = append(d.descriptor.sstMetas, newSstMeta)
-	if err := d.descriptor.Save(); err != nil {
+	d.manifest.SstMetas = append(d.manifest.SstMetas, newSstMeta)
+	if err := d.manifest.Save(); err != nil {
 		log.Fatalf("error saving descriptor while flushing memtable: %v", err)
 	}
 	d.imemtable = nil
@@ -142,7 +139,7 @@ func (d *database) cleanUnusedFiles() {
 	for range time.Tick(30 * time.Second) {
 		var maxApplied int64
 		d.RLock()
-		for _, sst := range d.descriptor.sstMetas {
+		for _, sst := range d.manifest.SstMetas {
 			if sst.AppliedUntil > maxApplied {
 				maxApplied = sst.AppliedUntil
 			}
@@ -182,5 +179,13 @@ func (d *database) cleanUnusedFiles() {
 		if cleaned > 0 {
 			utils.Debugf("Cleaned %v unused SST files", cleaned)
 		}
+	}
+}
+
+func (db *database) maybeTriggerFlush() {
+	utils.Debugf("maybeTriggerFlush(), memtable size is %v, configured trigger size is %d\n", db.memtable.SizeBytes(), config.Config.DBConfig.MemtableFlushSize)
+	if db.memtable.SizeBytes() > config.Config.DBConfig.MemtableFlushSize && db.imemtable == nil {
+		db.swapMemtableLocked()
+		go db.flushIMemtable()
 	}
 }

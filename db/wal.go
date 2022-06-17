@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/RcrdBrt/gobigdis/ops"
-	"github.com/RcrdBrt/gobigdis/storage"
 	"github.com/RcrdBrt/gobigdis/utils"
 	"github.com/RcrdBrt/gobigdis/wal"
 )
@@ -41,7 +40,7 @@ func (db *database) recoverLog(lastApplied int64) (int64, error) {
 		db.apply(record)
 	}
 
-	db.maybeFlush()
+	db.maybeTriggerFlush()
 
 	utils.Debugf("scanned %d records, applied %d", n, applied)
 
@@ -54,20 +53,9 @@ func (db *database) recoverLog(lastApplied int64) (int64, error) {
 	return seqNo, sc.Err()
 }
 
-func (db *database) apply(record *wal.LogRecord) {
-	switch record.Op {
+func (db *database) apply(l *wal.LogRecord) {
+	switch l.Op {
 	case ops.SET:
-		storage.Set(record.DBNum, [][]byte{record.Key, record.Value})
-	case ops.GET:
-		storage.Get(record.DBNum, [][]byte{record.Key})
-	case ops.DEL:
-		storage.Del(record.DBNum, [][]byte{record.Key})
-	}
-}
-
-func (db *database) maybeFlush() {
-	if db.memtable.SizeBytes() > memtableFlushSize {
-		db.swapMemtableLocked()
-		go db.flushIMemtable()
+		db.memtable.Insert(l)
 	}
 }
