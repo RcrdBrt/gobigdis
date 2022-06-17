@@ -19,6 +19,8 @@ import (
 	"errors"
 	"hash/crc32"
 	"io"
+	"io/fs"
+	"path/filepath"
 
 	"github.com/RcrdBrt/gobigdis/config"
 	"github.com/RcrdBrt/gobigdis/utils"
@@ -31,6 +33,8 @@ const (
 	MaxSstKeySize = config.MaxKeySize + 16
 
 	footerSize = 4*binary.MaxVarintLen64 + 4 + 8
+
+	blockCacheSize int64 = 1 * 1024 * 1024 * 1024 // 1 GiB
 )
 
 const (
@@ -75,4 +79,24 @@ func (h *blockHandle) EncodeTo(w io.Writer) error {
 		return err
 	}
 	return utils.WriteUvarInt64(w, h.size)
+}
+
+func GetSstFiles() ([]string, error) {
+	var files []string
+
+	if err := filepath.WalkDir(filepath.Join(config.Config.DBConfig.InternalDirPath), func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if filepath.Ext(path) == ".sst" {
+			files = append(files, path)
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return files, nil
 }

@@ -16,7 +16,6 @@ package sst
 
 import (
 	"bytes"
-	"context"
 	"encoding/binary"
 	"fmt"
 	"hash/crc32"
@@ -101,7 +100,7 @@ func (r *Reader) NewIter() (*Iter, error) {
 }
 
 // Find returns the value of key in SST.
-func (r *Reader) Find(ctx context.Context, key string) (value []byte, ts int64, err error) {
+func (r *Reader) Find(key string) (value []byte, ts int64, err error) {
 	/// Test filter block for presence
 	fb, err := r.getFilterBlock()
 	if !fb.Test(key) {

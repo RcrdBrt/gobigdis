@@ -20,9 +20,11 @@ import (
 	"math/rand"
 	"sync"
 	"sync/atomic"
+	"time"
 	"unsafe"
 
 	"github.com/RcrdBrt/gobigdis/utils"
+	"github.com/RcrdBrt/gobigdis/wal"
 )
 
 const (
@@ -70,36 +72,44 @@ func New(seqNo int64) *Memtable {
 	}
 }
 
-// Insert inserts (key, timestamp, value) into the memtable.
+// Insert inserts the log entry into the memtable.
 // Requires that (key, timestamp) does not already exist.
-func (m *Memtable) Insert(seqNo int64, key string, timestamp int64, value []byte) {
+func (m *Memtable) Insert(l *wal.LogRecord) {
+	if l.Timestamp == 0 {
+		panic("timestamp cannot be 0")
+	}
+
+	if l.Timestamp > time.Now().UnixNano() {
+		panic("timestamp cannot be in the future")
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if seqNo < m.seqNoUpper {
-		utils.Debugf("memtable received insert with seqNo less than upper bound: %v < %v", seqNo, m.seqNoUpper)
+	if l.Seq < m.seqNoUpper {
+		utils.Debugf("memtable received insert with seqNo less than upper bound: %v < %v", l.Seq, m.seqNoUpper)
 	}
-	m.seqNoUpper = seqNo
+	m.seqNoUpper = l.Seq
 
-	if key == "" {
-		utils.Debugf("Invalid empty key.")
+	if utils.ValidateKey(l.Key) != nil {
+		utils.Debugf("Invalid key.")
 	}
 	var prev [maxLevel]*node
 
-	n := m.findGreaterOrEqual(key, timestamp, prev[:])
+	n := m.findGreaterOrEqual(l.Key, l.Timestamp, prev[:])
 
-	if n != nil && n.timestamp == timestamp && n.key == key {
-		utils.Debugf("Insert called with duplicate key %v.", key)
+	if n != nil && n.timestamp == l.Timestamp && n.key == l.Key {
+		utils.Debugf("Insert called with duplicate key %v.", l.Key)
 	}
 
 	level := m.pickLevel()
 	newNode := &node{
-		key:       key,
-		timestamp: timestamp,
-		value:     value,
+		key:       l.Key,
+		timestamp: l.Timestamp,
+		value:     l.Value,
 		next:      make([]unsafe.Pointer, level+1),
 	}
-	m.size += int64(len(key)) + int64(len(value)) + 8 + 8*int64(level+1)
+	m.size += int64(len(l.Key)) + int64(len(l.Value)) + 8 + 8*int64(level+1)
 
 	for i := 0; i <= level; i++ {
 		newNode.atomicStoreNext(i, prev[i].atomicLoadNext(i))
